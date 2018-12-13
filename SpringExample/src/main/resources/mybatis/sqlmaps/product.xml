@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.myapp.dao.ProductDao">
+	<select id="selectMenuList" resultType="java.util.HashMap">
+		SELECT MENU_NAME,MENU_URL
+		FROM MENU
+		WHERE MENU_VIEW_YN = 'Y'
+	</select>
+	
+	
+	<select id="ajaxSelect" resultType="java.util.HashMap"
+		parameterType="java.util.HashMap">
+		SELECT
+				ROW_NUMBER() OVER (ORDER BY pc.product_company_name) AS columNum ,
+		        pc.product_company_name as companyName,
+		        (select count(*) from product p where pc.product_company_cd=p.product_company_cd ) as productCount,
+		        case when length(pc.product_remark ) > 5 then SUBSTR(pc.product_remark,0,5)||'....' 
+		        	else pc.product_remark end
+		        AS remark,
+		        DECODE(pc.product_del_yn,'Y','삭제','미삭제') AS deleteYn,
+		        COUNT(*) OVER() AS selectCount
+
+		FROM 	PRODUCT_COMPANY pc
+		WHERE 	1=1
+		<if test='startDate != null and startDate !="" and endDate != null and endDate !=""'>
+		AND		TO_CHAR(pc.product_reg_date,'YYYYMMDD') BETWEEN #{startDate} AND #{endDate}
+		</if>
+		<if test='companys != null and companys !=""'>
+		AND 	pc.product_company_name in 
+			<foreach collection="companyName" item="c" open="(" separator="," close=")">
+				#{c}
+			</foreach>
+		</if>
+		<if test='remark != null and remark !=""'>
+		AND 	upper(pc.product_remark) LIKE '%'||upper(#{remark})||'%'
+		</if>
+		<if test='deleteYn != null and deleteYn !=""'>
+		AND 	pc.product_del_yn = #{deleteYn}
+		</if>
+		
+		
+		ORDER BY columNum DESC
+
+	</select>
+
+	<select id="selectProductList" resultType="java.util.HashMap"
+		parameterType="java.util.HashMap">
+		SELECT
+		ROW_NUMBER() OVER (ORDER BY P.PRODUCT_NAME) AS ROWNUMB
+		,
+		P.PRODUCT_NAME AS PRODUCT_NAME
+		, PC.PRODUCT_COMPANY_NAME AS
+		PRODUCT_COMPANY_NAME
+		, TO_CHAR(P.PRODUCT_REG_DATE,'YYYY-MM-DD') as
+		PRODUCT_REG_DATE
+		, P.PRODUCT_DEL_YN AS PRODUCT_DEL_YN
+		, P.PRODUCT_REMARK
+		, DECODE(P.PRODUCT_DEL_YN, 'Y','삭제', '미삭제') AS PRODUCT_DEL_YN_KR
+		FROM
+		PRODUCT P
+		INNER JOIN
+		PRODUCT_COMPANY PC
+		ON P.PRODUCT_COMPANY_CD =
+		PC.PRODUCT_COMPANY_CD
+		WHERE 1=1
+		<if test='productName != null and productName !=""'>
+			AND upper(P.PRODUCT_NAME) LIKE '%'||upper(#{productName})||'%'
+
+		</if>
+		<if test='deleteYn != null'>
+			AND P.PRODUCT_DEL_YN = #{deleteYn}
+		</if>
+		<if test='companyName != null and companyName !=""'>
+
+			AND PC.PRODUCT_COMPANY_NAME IN
+			<foreach collection="companys" item="c" separator="," open="("
+				close=")">
+				#{c}
+			</foreach>
+		</if>
+		<if test='createDate != null and createDate !=""'>
+			AND TO_DATE(P.PRODUCT_REG_DATE,'YY/MM/DD') =
+			TO_DATE(#{createDate},'YY/MM/DD')
+		</if>
+
+		order by PRODUCT_NAME
+
+	</select>
+
+
+	<select id="selectCompanyList" resultType="java.util.HashMap">
+		SELECT
+		product_company_name
+		FROM product_company
+
+	</select>
+
+</mapper>
+ 
